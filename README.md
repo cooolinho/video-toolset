@@ -1,184 +1,163 @@
-# Video Toolset
+<h1 align="center">🎬 Video Toolset</h1>
 
-Dieses Projekt enthält **zwei Shell-Toolsets** für Videobearbeitung:
+<p align="center">
+  <em>Two Bash toolsets for FFmpeg: split long recordings into episodes, and downscale videos to 720p.</em>
+</p>
 
-1. **Video Splitter Toolset** → Lange Aufnahmen in einzelne Folgen aufteilen
-2. **Video Downscale Toolset** → Videos auf 720p downscalen, um Dateigröße zu reduzieren
+<p align="center">
+  <img src="https://img.shields.io/badge/Bash-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white" alt="Bash">
+  <img src="https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white" alt="FFmpeg">
+</p>
 
-Alle Ausgaben werden automatisch in einem Unterordner `output/` gespeichert.
-
----
-
-## 📌 Voraussetzungen
-
-* **Windows** oder **Linux/macOS**
-* **Git Bash** (für Windows): [https://git-scm.com/download/win](https://git-scm.com/download/win)
-* **FFmpeg** (Version 7.1.1 oder neuer)
-
-  * Prüfen:
-
-    ```bash
-    ffmpeg -version
-    ```
+<p align="center">
+  <a href="README.de.md">🇩🇪 Deutsche Version</a>
+</p>
 
 ---
 
-## ⚙️ 1. Video Splitter Toolset
+## 📖 About
 
-Dieses Toolset enthält zwei Skripte, mit denen du Serienmarathons oder lange Aufnahmen **in einzelne Folgen aufteilen** kannst.
+Two independent toolsets for the same recurring problem: video files that are
+either too long or too large.
 
-### Skripte
+**The splitter** cuts one long recording — a TV marathon, a stream capture — into
+individual episodes. You define the timestamps in a plain text file; FFmpeg does
+the cutting with stream copy, so it takes seconds and loses nothing.
 
-#### a) `create_episode_files.sh`
+**The downscaler** walks a folder tree and re-encodes everything to 720p to
+reclaim disk space. Originals are never modified.
 
-Erstellt zu jeder Videodatei (`.mkv` oder `.mp4`) im Ordner eine passende `*-episodes.txt`, falls diese noch nicht existiert.
+Both write into an `output/` subfolder, so the input directory stays as it was.
 
-**Nutzung:**
+## 🛠️ Tech Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| <img src="https://img.shields.io/badge/Bash-4EAA25?style=flat-square&logo=gnubash&logoColor=white" alt="Bash"> Bash | — | Scripting |
+| <img src="https://img.shields.io/badge/FFmpeg-007808?style=flat-square&logo=ffmpeg&logoColor=white" alt="FFmpeg"> FFmpeg | 7.1.1+ | Cutting and encoding |
+
+## ✨ Features
+
+- **Lossless splitting** — `-c copy` means no re-encoding: fast, no quality loss
+- **Generated episode lists** — a template file per video, ready to fill in
+- **Malformed entries are skipped** — bad or negative timestamps do not abort the run
+- **Recursive downscaling** — walks subfolders, configurable extensions
+- **Originals untouched** — everything lands in `output/`
+- **Cross-platform** — Linux, macOS, and Windows via Git Bash or WSL
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **FFmpeg** 7.1.1 or newer, on your `PATH`
+- **Bash** — on Windows via [Git Bash](https://git-scm.com/download/win) or WSL
 
 ```bash
-chmod +x create_episode_files.sh
-./create_episode_files.sh meine-serie
+ffmpeg -version   # verify the installation
 ```
 
-**Ergebnis:**
+### Installation
 
-```
-meine-serie/
-├── aufnahme001.mkv
-├── aufnahme001-episodes.txt
-├── aufnahme002.mp4
-├── aufnahme002-episodes.txt
+```bash
+git clone https://github.com/cooolinho/video-toolset.git
+cd video-toolset
+chmod +x *.sh
 ```
 
-**Inhalt der automatisch erstellten Datei:**
+## 📋 Usage
+
+### ✂️ Splitting recordings into episodes
+
+**Step 1 — generate the episode lists**
+
+```bash
+./create_episode_files.sh my-series
+```
+
+For every `.mkv` or `.mp4` in the folder, a matching `*-episodes.txt` is created
+if it does not exist yet:
+
+```
+my-series/
+├── recording001.mkv
+├── recording001-episodes.txt
+├── recording002.mp4
+└── recording002-episodes.txt
+```
+
+**Step 2 — fill in the timestamps**
+
+One line per episode, `Name Start End`:
 
 ```txt
-# Episodenliste für aufnahme001.mkv
-# Schema: Folgenname HH:MM:SS HH:MM:SS
-# Beispiel: Folge01 00:00:00 00:45:00
+Episode01 00:00:00 00:44:55
+Episode02 00:45:10 01:30:00
+Episode03 01:30:15 02:15:00
 ```
 
-➡️ Danach trägst du deine Start- und Endzeiten ein.
+Comments (`#`) and blank lines are ignored.
 
-#### b) `split_folder.sh`
+| Field | Meaning |
+|-------|---------|
+| Name | Output filename, without extension |
+| Start | Where the episode begins, `HH:MM:SS` |
+| End | Where it ends, `HH:MM:SS` |
 
-Liest alle Videodateien und Episodenlisten ein und schneidet die Folgen mit FFmpeg heraus.
-
-**Nutzung:**
+**Step 3 — cut**
 
 ```bash
-chmod +x split_folder.sh
-./split_folder.sh meine-serie
+./split_folder.sh my-series
 ```
 
-Alle geschnittenen Folgen landen automatisch im Unterordner `output/`:
-
 ```
-meine-serie/output/
-├── Folge01.mkv
-├── Folge02.mkv
-├── Folge03.mkv
-...
+my-series/output/
+├── Episode01.mkv
+├── Episode02.mkv
+└── Episode03.mkv
 ```
 
----
-
-### 📄 Episodenlisten (Schema)
-
-Jede Episodenliste enthält eine Zeile pro Folge:
-
-```
-Folgenname HH:MM:SS HH:MM:SS
-```
-
-* **Folgenname**: Name der Ausgabedatei (z. B. `Folge01`)
-* **Startzeit**: Beginn der Episode im Video
-* **Endzeit**: Ende der Episode im Video
-
-**Beispiel: `aufnahme001-episodes.txt`**
-
-```txt
-Folge01 00:00:00 00:44:55
-Folge02 00:45:10 01:30:00
-Folge03 01:30:15 02:15:00
-```
-
-> Kommentare (`#`) und leere Zeilen werden ignoriert.
-
----
-
-### ✅ Hinweise
-
-* Schneiden erfolgt mit `-c copy` → **kein Re-Encoding** → sehr schnell, keine Qualitätsverluste
-* Fehlerhafte Zeitangaben oder negative Werte werden übersprungen
-* Jede Serie hat ihren eigenen `output/`-Ordner
-
----
-
-### 🔧 Workflow-Empfehlung
-
-1. `create_episode_files.sh` ausführen → Episodenlisten werden erstellt
-2. Start- und Endzeiten in den Episodenlisten eintragen
-3. `split_folder.sh` starten → Folgen werden automatisch geschnitten
-
----
-
-## ⚙️ 2. Video Downscale Toolset
-
-Dieses Toolset konvertiert Videos in einem angegebenen Ordner (inklusive Unterordner) auf 720p, um **Dateigröße zu reduzieren**, ohne die Qualität wesentlich zu beeinträchtigen.
-
-### Nutzung
-
-1. Skript ausführbar machen:
+### 📉 Downscaling to 720p
 
 ```bash
-chmod +x downscale_videos.sh
+./downscale_videos.sh /path/to/folder
 ```
 
-2. Skript ausführen:
+On Windows via Git Bash:
 
 ```bash
-./downscale_videos.sh /pfad/zum/ordner
+./downscale_videos.sh /c/Users/YourName/Videos
 ```
 
-* Unter Windows (Git Bash/WSL):
+Converted files land in `output/` inside the given folder. Originals stay
+untouched.
 
-```bash
-./downscale_videos.sh /c/Users/Benutzer/Videos
+#### Configuration
+
+The settings live at the top of `downscale_videos.sh`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OUTPUT_SUFFIX` | `_720p` | Appended to output filenames |
+| `CRF` | `20` | Quality: 18–28, lower means better and larger |
+| `PRESET` | `slow` | `ultrafast` … `veryslow`; slower compresses better |
+| `AUDIO_BITRATE` | `128k` | Audio bitrate |
+| `TARGET_HEIGHT` | `720` | Target height in pixels |
+| `VIDEO_CODEC` | `libx264` | Video codec |
+| `AUDIO_CODEC` | `aac` | Audio codec |
+| `EXTENSIONS` | `mp4 mkv mov avi` | Which files to process |
+
+Encoding a large library takes a while — `PRESET` is the main lever if you would
+rather trade file size for time.
+
+## 📁 Project Structure
+
+```
+video-toolset/
+├── create_episode_files.sh   # Generate episode list templates
+├── split_folder.sh           # Cut episodes with FFmpeg
+└── downscale_videos.sh       # Recursively downscale to 720p
 ```
 
-Alle konvertierten Videos werden im Unterordner `output/` im angegebenen Input-Ordner abgelegt.
+## 📄 License
 
----
-
-### Konfiguration
-
-Die wichtigsten Optionen sind am Anfang des Skripts als Variablen definiert:
-
-```bash
-OUTPUT_SUFFIX="_720p"       # Suffix für Ausgabedateien
-CRF="20"                    # Qualität (niedriger = besser)
-PRESET="slow"               # Kompressionsgeschwindigkeit
-AUDIO_BITRATE="128k"        # Audio-Bitrate
-TARGET_HEIGHT="720"         # Zielhöhe
-VIDEO_CODEC="libx264"       # Video-Codec
-AUDIO_CODEC="aac"           # Audio-Codec
-EXTENSIONS=("mp4" "mkv" "mov" "avi")  # erlaubte Dateiendungen
-```
-
-* `CRF`: 18–28 → niedriger = bessere Qualität, größere Datei; 23 ist Standard
-* `PRESET`: `ultrafast`, `superfast`, `fast`, `medium`, `slow`, `slower`, `veryslow`
-* `EXTENSIONS`: weitere Formate einfach hinzufügen
-
----
-
-### ✅ Hinweise
-
-* FFmpeg muss installiert und im Systempfad verfügbar sein
-* Originaldateien bleiben unverändert
-* Bei sehr vielen Dateien kann die Verarbeitung einige Zeit dauern
-* Optional kann das Skript für parallele Verarbeitung erweitert werden
-
----
-
-Mit diesem Toolset kannst du **lange Aufnahmen schneiden** und **Videos verlustarm downscalen**, alles in einer sauberen Ordnerstruktur. 🎬
+Released under the [MIT License](LICENSE).
